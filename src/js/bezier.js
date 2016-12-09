@@ -48,6 +48,18 @@ Bezier.prototype = {
     box.height = Math.max(...y) - box.y;
     return box;
   },
+  splitAt: function(t){
+    var
+      roller = (e, i, a) => (i < a.length - 2) && (e + (a[i + 2] - e)*t),
+      data = this.values,
+      levels = [data];
+    for(; data.length > 2; data.length -= 2)
+      levels.push(data = data.map(roller));
+    return [
+      new Bezier(...[].concat(...levels.map(e => e.slice(0, 2)))),
+      new Bezier(...[].concat(...levels.reverse().map(e => e.slice(-2)))),
+    ];
+  },
   toPath: function(){
     return ["M", this.values[0], this.values[1], "C", ...this.values.slice(2)].join(" ");
   }
