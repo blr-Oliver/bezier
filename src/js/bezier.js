@@ -3,6 +3,9 @@ function Bezier(...values){
 }
 
 Bezier.prototype = {
+  _rollPoly: function(p1, p2){
+      return p1.clone().multiplyValues(1, -1).sumPoly(p2.clone().multiplyValues(0, 1));
+  },
   at: function(t){
     var roller = (e, i, a) => (i < a.length - 2) && (e + (a[i + 2] - e)*t), data = this.values;
     for(; data.length > 2; data.length -= 2)
@@ -19,17 +22,15 @@ Bezier.prototype = {
     for(let i = 0; i < rank; ++i) {
       polynoms = polynoms.map(function(e, i, a){
         if(i < a.length - 1)
-          return [rollUp(e[0], a[i + 1][0]), rollUp(e[1], a[i + 1][1])];
-      }).slice(0, -1);
+          return [this._rollPoly(e[0], a[i + 1][0]), this._rollPoly(e[1], a[i + 1][1])];
+      }, this).slice(0, -1);
     } 
     return polynoms;
-    function rollUp(p1, p2){
-      return p1.clone().multiplyValues(1, -1).sumPoly(p2.clone().multiplyValues(0, 1));
-    }
   },
   tangentPoints: function(tx, ty){
-    var mn = this.getPolynoms(2);
-    var tangent = [mn[1][0].subtractPoly(mn[0][0]), mn[1][1].subtractPoly(mn[0][1])];
+    var ends = this.getPolynoms(2);
+    var tangent = [ends[1][0].subtractPoly(ends[0][0]),
+                   ends[1][1].subtractPoly(ends[0][1])];
     var eq = tangent[0].multiplyScalar(ty).subtractPoly(tangent[1].multiplyScalar(tx));
     return solveQuadratic(...eq.values).filter(t => t >= 0 && t <= 1);
   },
@@ -65,7 +66,7 @@ Bezier.prototype = {
   }
 }
 Bezier.fromPath = function(d){
-  return new Bezier(...d.split(/(?:[MC\s]|(?=-))+/).filter(e => !!e).map(Number));
+  return new Bezier(...d.split(/(?:[MC\s,]|(?=-))+/).filter(e => !!e).map(Number));
 }
 function solveQuadratic(c, b, a){
   if(!a) return b ? [-c/b] : (c ? [] : [NaN]);
